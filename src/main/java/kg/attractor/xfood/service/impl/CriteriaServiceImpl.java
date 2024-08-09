@@ -73,14 +73,17 @@ public class CriteriaServiceImpl implements CriteriaService {
         List <CriteriaType> criterion = criteriaTypeService.findAllByTypeId(checkTypeId);
         List<CriteriaSupervisorShowDto> dtos = new ArrayList<>();
         for (CriteriaType criteriaType : criterion) {
+            CriteriaSupervisorShowDto supervisorShowDto = new CriteriaSupervisorShowDto();
             dtos.add(CriteriaSupervisorShowDto
                     .builder()
                             .maxValueType(criteriaType.getMaxValue())
                             .id(criteriaType.getCriteria().getId())
                             .section(criteriaType.getCriteria().getSection().getName())
                             .description(criteriaType.getCriteria().getDescription())
+                            .coefficient(criteriaType.getCriteria().getCoefficient())
                             .zone(criteriaType.getCriteria().getZone().getName())
                     .build());
+
         }
         return dtos;
     }

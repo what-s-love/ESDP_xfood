@@ -112,7 +112,7 @@ public class CheckListServiceImpl implements CheckListService {
         createDto.getCriteriaMaxValueDtoList().sort(Comparator.comparing(CriteriaMaxValueDto::getCriteriaId));
 
         String uuid = UUID.randomUUID().toString();
-        checkListRepository.saveCheckList(workSchedule.getId(), Status.NEW.getStatus(), createDto.getExpertId(), uuid);
+        checkListRepository.saveCheckList(workSchedule.getId(), Status.NEW.getStatus(), createDto.getExpertId(), uuid, createDto.getCheckTypeId());
         checkListRepository.flush();
         return CheckListMiniSupervisorCreateDto.builder().checkTypeId(createDto.getCheckTypeId()).expertId(createDto.getExpertId()).workScheduleId(workSchedule.getId()).criteriaMaxValueDtoList(createDto.getCriteriaMaxValueDtoList()).pizzeria(workSchedule.getPizzeria()).build();
     }
@@ -427,7 +427,6 @@ public class CheckListServiceImpl implements CheckListService {
     public void bindChecklistWithCriterion(CheckListMiniSupervisorCreateDto checklistDto) {
         CheckList checkList = checkListRepository.findCheckListByWorkSchedule_IdAndExpert_Id(checklistDto.getWorkScheduleId(), checklistDto.getExpertId()).orElseThrow(() -> new NoSuchElementException("Чек-лист не найден "));
         log.info(checkList.toString());
-        CheckType checkType = checkTypeService.getById(checklistDto.getCheckTypeId());
         for (CriteriaMaxValueDto criteriaMaxValueDto : checklistDto.getCriteriaMaxValueDtoList()) {
             CheckListsCriteria checkListsCriteria = CheckListsCriteria.builder()
                     .checklist(checkList)
@@ -435,18 +434,11 @@ public class CheckListServiceImpl implements CheckListService {
                     .maxValue(criteriaMaxValueDto.getMaxValue())
                     .value(0)
                     .build();
-            if (!Objects.equals(criteriaService.findById(criteriaMaxValueDto.getCriteriaId()).getSection().getName(), "")) {
+            if (Objects.equals(criteriaService.findById(criteriaMaxValueDto.getCriteriaId()).getSection().getName(), "Критический фактор")) {
                 checkListsCriteria.setMaxValue(1);
             }
             log.info("чеклист {} связан с критерием {}", checkList, criteriaMaxValueDto.getCriteriaId());
             checkListCriteriaService.save(checkListsCriteria);
-            CriteriaType criteriaType = CriteriaType.builder()
-                    .criteria(criteriaService.findById(criteriaMaxValueDto.getCriteriaId()))
-                    .maxValue(criteriaMaxValueDto.getMaxValue())
-                    .type(checkType)
-                    .build();
-            log.info("критерия {} связана с типом {}", criteriaMaxValueDto.getCriteriaId(), criteriaType.getType());
-            criteriaTypeService.save(criteriaType);
             log.info("Чек лист и все необходимые связи созданы");
 
         }
@@ -455,6 +447,7 @@ public class CheckListServiceImpl implements CheckListService {
     public Manager getManagerById(long id) {
         return managerService.findById(id);
     }
+
     @Override
     public StatisticsDto getStatistics(LocalDate from, LocalDate to) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
